@@ -1,24 +1,41 @@
 from sqlalchemy.orm import Session
-from app.db.schema.venue import EventCreate
-from app.db.models import Event  # Assuming Event is the SQLAlchemy model
+from app.db.models.event import Event
+from app.db.models import Venue
+from datetime import datetime
 
 class EventRepository:
     @staticmethod
-    def get_events_by_date(db: Session, date: str):
+    def get_all_events(db: Session):
+        return db.query(Event).all()
+
+    @staticmethod
+    def find_event_by_date(date: datetime, db: Session):
         return db.query(Event).filter(Event.date == date).all()
 
     @staticmethod
-    def get_events_by_venue(db: Session, venue_id: int):
-        return db.query(Event).filter(Event.venue_id == venue_id).all()
+    def find_event_by_venue(venue_name: str, db: Session):
+        venue = db.query(Venue).filter(Venue.name.ilike(f"%{venue_name}%")).first()
+        if venue:
+            return db.query(Event).filter(Event.venue_id == venue.id).all()
+        return []
 
     @staticmethod
-    def get_event_details(db: Session, event_id: int):
-        return db.query(Event).filter(Event.id == event_id).first()
+    def get_event_price(event_name: str, db: Session):
+        event = db.query(Event).filter(Event.name.ilike(f"%{event_name}%")).first()
+        return {"price": event.price} if event else None
 
     @staticmethod
-    def get_free_events(db: Session):
+    def get_event_details(event_name: str, db: Session):
+        event = db.query(Event).filter(Event.name.ilike(f"%{event_name}%")).first()
+        if event:
+            return {
+                "name": event.name,
+                "date": event.date,
+                "time": event.time,
+                "available_seats": event.available_seats,
+            }
+        return None
+
+    @staticmethod
+    def find_free_events(db: Session):
         return db.query(Event).filter(Event.price == 0).all()
-
-    @staticmethod
-    def get_events_after_time(db: Session, time: str):
-        return db.query(Event).filter(Event.time > time).all()
